@@ -1,0 +1,409 @@
+{% extends 'base.html' %}
+{% set active_page = 'home' %}
+
+{% block css %}
+<style>
+    i {
+        font-size: 22px;
+        margin-left: 5px;
+        margin-right: 5px;
+        cursor: pointer;
+    }
+
+    .modal-title {
+        text-transform: capitalize;
+    }
+
+    .bi-gear-fill {
+        cursor: auto;
+    }
+</style>
+{% endblock %}
+
+{% block header %}<h1>{% block title %}Home{% endblock %}</h1>{% endblock %}
+
+{% block content %}
+{% if current_user.is_authenticated %}
+
+<div class="container">
+    <div class="d-flex">
+        <div class="ms-auto">
+            <button class="btn btn-success" id="new_task"><i class="bi bi-plus-circle-fill"></i>New Task</button>
+            <p class="text-center">Reload: <span id="timer"></span></p>
+        </div>
+    </div>
+    <table class="table table-dark table-striped text-center">
+        <thead>
+            <tr>
+                <th scope="col">Id</th>
+                <th scope="col">Name</th>
+                <th scope="col">Next Run Time</th>
+                <th scope="col">Interval</th>
+                <th scope="col">Start Date</th>
+                <th scope="col">Trigger</th>
+                <th scope="col"><i class="bi bi-gear-fill"></i></th>
+            </tr>
+        </thead>
+        <tbody class="align-middle"></tbody>
+    </table>
+</div>
+
+<div class="modal fade" id="modal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-secondary">
+            <div class="modal-header bg-dark border-secondary">
+                <h5 class="modal-title"></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body bg-dark">
+                <div class="d-flex justify-content-md-center" role="alert">
+                    <div class="alert alert-danger" style="display: none">
+                        <i class="bi bi-x-circle-fill"></i>
+                        <span id="error"></span>
+                    </div>
+                </div>
+                <form class="row g-3" id="form">
+                    <div class="col-3">
+                        <input type="hidden" id="id">
+                        <label for="name" class="form-label">Name</label>
+                        <input type="text" name="name" class="form-control" id="name">
+                    </div>
+                    <div class="col-3">
+                        <label for="func" class="form-label">Function</label>
+                        <select id="func" name="func" class="form-select"></select>
+                    </div>
+                    <div class="col-3">
+                        <label for="max_instances" class="form-label">Max Instances</label>
+                        <input type="number" name="max_instances" class="form-control" id="max_instances" min="1">
+                    </div>
+                    <div class="col-3">
+                        <label for="misfire_grace_time" class="form-label">Misfire Grace Time</label>
+                        <input type="number" name="misfire_grace_time" class="form-control" id="misfire_grace_time"
+                            min="1">
+                    </div>
+                    <div class="col-6">
+                        <label for="next_run_time" class="form-label">Next Run Time</label>
+                        <input type="datetime-local" step="1" name="next_run_time" class="form-control"
+                            id="next_run_time">
+                    </div>
+                    <div class="col-6">
+                        <label for="start_date" class="form-label">Start Date</label>
+                        <input type="datetime-local" step="1" name="start_date" class="form-control" id="start_date">
+                    </div>
+                    <div class="col-2">
+                        <label for="trigger" class="form-label">Trigger</label>
+                        <select id="trigger" name="trigger" class="form-select">
+                            <option value="date">date</option>
+                            <option value="interval">interval</option>
+                            <option value="cron">cron</option>
+                        </select>
+                    </div>
+                    <div class="row g-2 col-10" id="interval">
+                        <div class="col" id="weeks">
+                            <label for="weeks" class="form-label">Weeks</label>
+                            <input type="number" name="weeks" class="form-control" id="weeks">
+                        </div>
+                        <div class="col">
+                            <label for="days" class="form-label">Days</label>
+                            <input type="number" name="days" class="form-control" id="days">
+                        </div>
+                        <div class="col">
+                            <label for="hours" class="form-label">Hours</label>
+                            <input type="number" name="hours" class="form-control" id="hours">
+                        </div>
+                        <div class="col">
+                            <label for="minutes" class="form-label">Minutes</label>
+                            <input type="number" name="minutes" class="form-control" id="minutes">
+                        </div>
+                        <div class="col">
+                            <label for="seconds" class="form-label">Seconds</label>
+                            <input type="number" name="seconds" class="form-control" id="seconds">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer bg-dark border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary"></button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block script %}
+{% if current_user.is_authenticated %}
+
+<script>
+    function date_format(date) {
+        if (date == null || undefined) {
+            return ''
+        }
+        date = new Date(date)
+        if (date == 'Invalid Date') {
+            return ''
+        } else {
+            hour = String("00" + date.getHours()).slice(-2)
+            minute = String("00" + date.getMinutes()).slice(-2)
+            day = String("00" + date.getDate()).slice(-2)
+            month = String("00" + date.getMonth()).slice(-2)
+            year = date.getFullYear()
+            date = hour + ':' + minute + '&emsp;' + day + '-' + month + '-' + year
+            return date
+        }
+    }
+
+    function get_jobs(table) {
+        $.ajax({
+            url: "{{ url_for('scheduler.get_jobs') }}",
+            success: function (data) {
+                $('tbody').html('')
+                $(data.sort((a, b) => a.id - b.id)).each(function () {
+                    weeks = $(this)[0].weeks ? $(this)[0].weeks + ' weeks ' : ''
+                    days = $(this)[0].days ? $(this)[0].days + ' days ' : ''
+                    hours = $(this)[0].hours ? $(this)[0].hours + ' hours ' : ''
+                    minutes = $(this)[0].minutes ? $(this)[0].minutes + ' minutes ' : ''
+                    seconds = $(this)[0].seconds ? $(this)[0].seconds + ' seconds ' : ''
+                    $('tbody').append(
+                        '<tr>' +
+                        '<th>' + $(this)[0].id + '</th>' +
+                        '<td>' + $(this)[0].name + '</td>' +
+                        '<td>' + date_format($(this)[0].next_run_time) + '</td>' +
+                        '<td>' + weeks + days + hours + minutes + seconds + '</td>' +
+                        '<td>' + date_format($(this)[0].start_date) + '</td>' +
+                        '<td>' + $(this)[0].trigger + '</td>' +
+                        '<td>' +
+                        '<i class="bi bi-clock-fill"></i>' +
+                        ($(this)[0].next_run_time == null ? '<i class="bi bi-play-circle-fill text-success"></i>' : '<i class="bi bi-stop-circle-fill text-primary"></i>') +
+                        '<i class="bi bi-trash3-fill text-danger"></i>' +
+                        '<i class="bi bi-pencil-square text-warning"></i>' +
+                        '</td>' +
+                        '</tr>'
+                    )
+                })
+            }
+        })
+    }
+
+    // Set the date we're counting down to
+    countDownDate = new Date()
+    countDownDate.setMinutes(countDownDate.getMinutes() + 1)
+
+    // Update the count down every 1 second
+    setInterval(function () {
+
+        // Get today's date and time
+        now = new Date().getTime()
+
+        // Find the distance between now and the count down date
+        distance = countDownDate - now
+
+        // Time calculations for minutes and seconds
+        minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
+        seconds = Math.floor((distance % (1000 * 60)) / 1000)
+
+        // Output the result in an element with id="demo"
+        if (minutes) {
+            document.getElementById("timer").innerHTML = minutes + "m " + seconds + "s "
+        } else {
+            document.getElementById("timer").innerHTML = seconds + "s "
+        }
+
+        // If the count down is over, write some text 
+        if (distance < 1000) {
+            get_jobs()
+            countDownDate = new Date()
+            countDownDate.setMinutes(countDownDate.getMinutes() + 1)
+        }
+    }, 1000)
+
+    $(document).ready(function () {
+        get_jobs()
+        modal = new bootstrap.Modal(document.getElementById("modal"), {})
+
+        $.ajax({
+            url: "{{ url_for('func') }}",
+            success: function (data) {
+                $(data).each(function () {
+                    $('<option>').val($(this)[0].func).text($(this)[0].name).appendTo('#func');
+                })
+            }
+        })
+
+        $(document).on('click', '#new_task', function () {
+            $('.modal-title').html('New Task')
+            $('.btn-primary').html('Create Task')
+            $("#id").val('')
+            $('#name').val('')
+            $('#func').val('')
+            $('#max_instances').val('')
+            $('#misfire_grace_time').val('')
+            $('#next_run_time').val('')
+            $('#start_date').val('')
+            $("#trigger option[value=interval]").prop("selected", true)
+            $('#interval').show()
+            $('#weeks').val('')
+            $('#days').val('')
+            $('#hours').val('')
+            $('#minutes').val('')
+            $('#seconds').val('')
+            modal.show()
+        })
+
+        $(document).on('change', '#trigger', function () {
+            if ($(this).val() == "interval") {
+                $('#interval').show()
+            } else {
+                $('#interval').hide()
+            }
+        })
+
+        $(document).on('click', '.bi-stop-circle-fill', function () {
+            id = ($(this).closest('tr').find('th').text())
+            url = "{{ url_for('scheduler.pause_job', job_id='job_id') }}"
+            url = url.replace('job_id', id)
+            $.ajax({
+                method: "POST",
+                url: url,
+                success: function (data) {
+                    get_jobs()
+                }
+            })
+        })
+
+        $(document).on('click', '.bi-play-circle-fill', function () {
+            id = ($(this).closest('tr').find('th').text())
+            url = "{{ url_for('scheduler.resume_job', job_id='job_id') }}"
+            url = url.replace('job_id', id)
+            $.ajax({
+                method: "POST",
+                url: url,
+                success: function (data) {
+                    get_jobs()
+                }
+            })
+        })
+
+        $(document).on('click', '.bi-trash3-fill', function () {
+            id = ($(this).closest('tr').find('th').text())
+            url = "{{ url_for('scheduler.delete_job', job_id='job_id') }}"
+            url = url.replace('job_id', id)
+            $.ajax({
+                method: "DELETE",
+                url: url,
+                success: function (data) {
+                    get_jobs()
+                }
+            })
+        })
+
+        $(document).on('click', '.bi-clock-fill', function () {
+            id = ($(this).closest('tr').find('th').text())
+            url = "{{ url_for('scheduler.run_job', job_id='job_id') }}"
+            url = url.replace('job_id', id)
+            $.ajax({
+                method: 'POST',
+                url: url,
+                success: function (data) {
+                    console.log(data)
+                }
+            })
+        })
+
+        $(document).on('click', '.bi-pencil-square', function () {
+            id = ($(this).closest('tr').find('th').text())
+            url = "{{ url_for('scheduler.get_jobs') }}/" + id
+            $.ajax({
+                url: url,
+                success: function (data) {
+                    $('.modal-title').html(data.name)
+                    $('.btn-primary').html('Save Changes')
+                    $('#id').val(data.id)
+                    $('#name').val(data.name)
+                    $('#func').val(data.func)
+                    $('#max_instances').val(data.max_instances)
+                    $('#misfire_grace_time').val(data.misfire_grace_time)
+                    $('#next_run_time').val(data.next_run_time ? data.next_run_time.slice(0, 19) : "")
+                    $('#start_date').val(data.start_date ? data.start_date.slice(0, 19) : "")
+                    $('#trigger').val(data.trigger)
+                    if (data.trigger == "interval") {
+                        $('#interval').show()
+                        $('#weeks').val(data.weeks)
+                        $('#days').val(data.days)
+                        $('#hours').val(data.hours)
+                        $('#minutes').val(data.minutes)
+                        $('#seconds').val(data.seconds)
+                    } else {
+                        $('#interval').hide()
+                    }
+                }
+            })
+            $('.alert-danger').css("display", "none")
+            modal.show()
+        })
+
+        $(document).on('click', '.btn-primary', function () {
+            if ($('#trigger').val() == "interval") {
+                data = JSON.parse(JSON.stringify({
+                    "name": $('#name').val(),
+                    "func": $('#func').val(),
+                    "max_instances": parseInt($('#max_instances').val()),
+                    "misfire_grace_time": parseInt($('#misfire_grace_time').val()),
+                    "trigger": $('#trigger').val(),
+                    "weeks": parseInt($('#weeks').val() ? $('#weeks').val() : 0),
+                    "days": parseInt($('#days').val() ? $('#days').val() : 0),
+                    "hours": parseInt($('#hours').val() ? $('#hours').val() : 0),
+                    "minutes": parseInt($('#minutes').val() ? $('#minutes').val() : 0),
+                    "seconds": parseInt($('#seconds').val() ? $('#seconds').val() : 0)
+                }))
+            } else {
+                data = JSON.parse(JSON.stringify({
+                    "name": $('#name').val(),
+                    "max_instances": parseInt($('#max_instances').val()),
+                    "misfire_grace_time": parseInt($('#misfire_grace_time').val()),
+                    "trigger": $('#trigger').val(),
+                }))
+            }
+
+            if ($('#next_run_time').val()) {
+                data.next_run_time = $('#next_run_time').val().padEnd(19, ':00')
+            }
+
+            if ($('#start_date').val()) {
+                data.start_date = $('#start_date').val().padEnd(19, ':00')
+            }
+
+            id = ($('#id').val())
+            if (id) {
+                url = "{{ url_for('scheduler.update_job', job_id='job_id') }}"
+                url = url.replace('job_id', id)
+                method = 'PATCH'
+            } else {
+                url = "{{ url_for('scheduler.add_job') }}"
+                method = 'POST'
+                data.id = String(parseInt($(document).find("tbody").find("th").last().text()) + 1)
+            }
+            $.ajax({
+                url: url,
+                method: method,
+                data: JSON.stringify(data),
+                dataType: "json",
+                contentType: "application/json;charset=utf-8",
+                success: function (data) {
+                    get_jobs()
+                    modal.hide()
+                    $('.alert-danger').css("display", "none")
+                },
+                error: function (data) {
+                    $('#error').html(data.responseJSON.error_message)
+                    $('.alert-danger').css("display", "block")
+                }
+            })
+        })
+    })
+</script>
+
+{% endif %}
+{% endblock %}

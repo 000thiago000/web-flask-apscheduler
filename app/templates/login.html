@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% set active_page = 'login' %}
+
+{% block css %}
+<style>
+    form {
+        margin: 25px;
+        max-width: 325px;
+    }
+    .login{
+        max-width: 350px;
+    }
+</style>
+{% endblock %}
+
+{% block header %}<h1>{% block title %}Login{% endblock %}</h1>{% endblock %}
+
+{% block content %}
+<div class="container login border border-secondary rounded-3">
+    <form class="text-center" method="post">
+        <div class="mb-3">
+            <label for="email" class="form-label">Email address</label>
+            <input type="email" name="email" class="form-control" id="email">
+        </div>
+        <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" name="password" class="form-control" id="password">
+        </div>
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+</div>
+{% endblock %}

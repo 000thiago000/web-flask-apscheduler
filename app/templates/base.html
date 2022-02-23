@@ -1,0 +1,70 @@
+<!doctype html>
+<title>{% block title %}{% endblock %} - Flask</title>
+<link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-icons.css') }}">
+{% block css %}{% endblock %}
+
+<body class="bg-dark text-white">
+    <div class="container">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">Flask</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                    aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                        <li class="nav-item">
+                            <a class="nav-link {{'active' if active_page == 'home' }}" aria-current="page"
+                                href="{{ url_for('home') }}">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{'active' if active_page == 'register' }}"
+                                href="{{ url_for('register') }}">Register</a>
+                        </li>
+                        {% if current_user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('logout') }}">Log Out</a>
+                        </li>
+                        {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link {{'active' if active_page == 'login' }}"
+                                href="{{ url_for('login') }}">Log In</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </div>
+
+    <section class="content">
+        <header class="text-center">
+            {% block header %}{% endblock %}
+        </header>
+        <div class="d-flex justify-content-md-center" role="alert">
+            {% for message in get_flashed_messages() %}
+            <div class="alert alert-success">
+                <i class="bi bi-check-circle-fill"></i>
+                <span>{{ message }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% block content %}{% endblock %}
+    </section>
+
+    <script type="text/javascript" src="{{url_for('static', filename='js/bootstrap.bundle.min.js')}}"></script>
+    <script type="text/javascript" src="{{url_for('static', filename='js/jquery.min.js')}}"></script>
+    <script>
+        $(document).ready(function () {
+            $('.alert-success').delay(3000).fadeOut(2000, function () {
+                $(this).remove()
+            })
+        })
+    </script>
+    {% block script %}{% endblock %}
+
+</body>
