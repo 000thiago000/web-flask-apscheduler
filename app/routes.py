@@ -8,10 +8,7 @@ from app import app, db
 @app.before_request
 def check_login():
     if request.endpoint.split('.')[0] == 'scheduler' and not current_user.is_authenticated:
-        print(request.endpoint)
         return abort(401)
-    if request.endpoint.split('.')[0] == 'scheduler':
-        print(request.endpoint)
     return None
 
 
