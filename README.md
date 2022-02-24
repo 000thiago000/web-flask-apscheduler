@@ -1,4 +1,4 @@
-# Web-Flask_Apscheduler
+# Web-Flask-Apscheduler
 
 Web-Flask-APScheduler is an extension of Flask-APScheduler that adds a web interface to APScheduler.
 
