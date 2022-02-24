@@ -7,7 +7,7 @@ Web-Flask-APScheduler is an extension of Flask-APScheduler that adds a web inter
 Install it inside a `virtualenv` to make things easier:
 
 ```bash
-python3 -m venv venv
+python3 -m venv .
 source venv/bin/activate
 pip install -r requirements.txt
 ```
