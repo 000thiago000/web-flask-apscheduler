@@ -8,7 +8,7 @@ Install it inside a `virtualenv` to make things easier:
 
 ```bash
 python3 -m venv .
-source venv/bin/activate
+source ./bin/activate
 pip install -r requirements.txt
 ```
 ## Usage
